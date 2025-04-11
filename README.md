@@ -1,95 +1,94 @@
 # SatoshiFi
-A smart contract system for Bitcoin and Rootstock integration, providing dual staking functionality, mining pool management, and hashrate tokenization.
+A smart contract system for Bitcoin integration, providing dual staking functionality, mining pool management, trustless lending services, and hashrate tokenization.
 
 ## Project Description
-SatoshiFi is a protocol that extends Rootstock (RSK) capabilities by adding additional functionality for working with Bitcoin transactions. The system uses the existing Powpeg infrastructure to ensure reliable integration between Bitcoin and RSK.
+SatoshiFi is a protocol designed to extend the capabilities of Rootstock (RSK) by providing additional functionality for interacting with Bitcoin transactions. The system leverages the existing Powpeg infrastructure to ensure reliable integration between the Bitcoin and RSK networks.
 
-Main system components:
+Key system components include:
 
-- Protocol Core (SatoshiFiCore) - provides the main logic for interacting with Powpeg, user identification, and transaction processing
-- SatFi Token (SatFiToken) - ERC-20 compatible token with extended functionality
-- Dual Staking System - mechanism for staking both RBTC and SatFi tokens
-- Mining Pool Management - functionality for creating and managing mining pools
-- Reward Distribution System - mechanisms for calculating and distributing rewards
+-   **Protocol Core (SatoshiFiCore):** Provides the core logic for interacting with Powpeg, managing user identification, and processing transactions.
+-   **SatFi Token (SatFiToken):** An ERC-20 compatible token featuring extended functionality.
+-   **Dual Staking System:** A mechanism enabling users to stake both RBTC and SatFi tokens.
+-   **Mining Pool Management:** Functionality for creating and managing mining pools.
+-   **Reward Distribution System:** Handles the calculation and distribution of rewards.
+-   **Trustless Lending Services:** A mechanism allowing users to borrow stablecoins using BTC as collateral, or borrow BTC using stablecoins as collateral.
 
 ## Solution Architecture
-The system is built using a modular architecture, where each component is responsible for specific functionality:
+The system utilizes a modular architecture, with each component handling specific functionality:
 
-- Core Protocol Contract processes Peg-In and Peg-Out transactions using Powpeg interfaces (IBridge and IFederation)
-- SatFi Token Contract implements an ERC-20 compatible token with support for meta-transactions and fees
-- Dual Staking Contract manages staking of RBTC and SatFi tokens
-- Mining Pool Manager enables creation and management of pools
-- Reward Distribution System is responsible for calculating and distributing rewards
+-   **Core Protocol Contract:** Processes Peg-In and Peg-Out transactions leveraging the Powpeg interfaces (IBridge and IFederation).
+-   **SatFi Token Contract:** Implements an ERC-20 compatible token supporting meta-transactions and configurable fees.
+-   **Dual Staking Contract:** Manages the staking of RBTC and SatFi tokens.
+-   **Mining Pool Manager:** Enables the creation and management of mining pools.
+-   **Reward Distribution System:** Responsible for calculating and distributing rewards.
+-   **Trustless Lending Services:** Responsible for accepting collateral, disbursing funds to borrowers, and liquidating collateral in case of margin call failures.
 
 ## Installation and Setup
 ### Requirements
-- Node.js v20.x or higher
-- npm v10.x or higher
-- Git
+-   Node.js v20.x or higher
+-   npm v10.x or higher
+-   Git
 
 ### Installation
-1. Clone the repository:
-```bash
-git clone https://github.com/SergeyBelets/SatFiPublic.git
-cd SatoshiFi
-```
+1.  Clone the repository:
+    ```bash
+    git clone [https://github.com/SergeyBelets/SatFiPublic.git](https://github.com/SergeyBelets/SatFiPublic.git)
+    cd SatoshiFi
+    ```
 
-2. Install dependencies:
-```bash
-npm install
-```
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
 
-3. Create .env file based on .env.example:
-```bash
-cp .env.example .env
-```
+3.  Create a `.env` file based on `.env.example`:
+    ```bash
+    cp .env.example .env
+    ```
 
-4. Configure environment variables in the .env file
+4.  Configure the required environment variables in the `.env` file.
 
 ### Testing
-Run tests:
+To run tests:
 ```bash
 npx hardhat test
-```
+Deployment
+To deploy to the Rootstock testnet:
 
-### Deployment
-Deploy to Rootstock testnet:
-```bash
+Bash
+
 npx hardhat run scripts/deployment/deploy.js --network rskTestnet
-```
+Powpeg Integration
+The SatoshiFi system utilizes the Powpeg API for Bitcoin integration rather than duplicating its functionality. The Peg-In and Peg-Out processes work as follows:
 
-## Powpeg Integration
-The SatoshiFi system does not duplicate Powpeg functionality but uses its API for Bitcoin integration. The Peg-In and Peg-Out processes work as follows:
+Bitcoin Locking Process (Peg-In)
+ID Binding:
 
-### Bitcoin Locking Process (Peg-In)
-1. **ID Binding**:
-   - User registers their RSK address in the SatoshiFi contract
-   - The system generates a unique identifier to be included in OP_RETURN
+The user registers their RSK address with the SatoshiFi contract.
+The system generates a unique identifier intended for inclusion in the OP_RETURN field of the Bitcoin transaction.
+Getting Instructions:
 
-2. **Getting Instructions**:
-   - The contract requests the current federation address through the Powpeg API
-   - User receives instructions for sending BTC with the identifier added to OP_RETURN
+The contract retrieves the current federation address via the Powpeg API.
+The user receives instructions to send BTC to the federation address, including the unique identifier in the OP_RETURN field.
+Tracking and Verification:
 
-3. **Tracking and Verification**:
-   - The system monitors transactions to the federation address
-   - When a transaction with the corresponding identifier in OP_RETURN is detected, the system binds the pegged funds to the specific user
+The system monitors transactions to the federation address.
+When a transaction arrives at the federation address containing the corresponding identifier in its OP_RETURN field, the system associates the pegged funds with the specific user's RSK address.
+Bitcoin Unlocking Process (Peg-Out)
+Initiating Unlock:
 
-### Bitcoin Unlocking Process (Peg-Out)
-1. **Initiating Unlock**:
-   - User requests withdrawal of funds through the SatoshiFi interface
-   - Specifies the recipient's BTC address
+The user initiates a withdrawal request for their funds via the SatoshiFi interface.
+The user specifies the recipient's destination BTC address.
+Request Processing:
 
-2. **Request Processing**:
-   - The contract verifies user rights and funds availability
-   - Calls the standard Powpeg method to request Peg-Out (createPegOut)
-   - Saves the association between the Peg-Out request and the user
+The contract verifies the user's permissions and available funds.
+It calls the standard Powpeg method (createPegOut) to initiate the Peg-Out process.
+The system records the association between this Peg-Out request and the user.
+Status Tracking:
 
-3. **Status Tracking**:
-   - The system monitors the execution of the Peg-Out request
-   - Updates the user operation status as the process progresses
-
-## Project Structure
-```
+The system monitors the execution of the Peg-Out request.
+It updates the status of the user's operation as the Peg-Out process progresses.
+Project Structure
 SatoshiFi/
 ├── contracts/
 │   ├── core/
@@ -102,6 +101,8 @@ SatoshiFi/
 │   │   └── MiningPoolManager.sol
 │   └── rewards/
 │       └── RewardDistribution.sol
+│   └── lending/               # Added based on description
+│       └── TrustlessLending.sol # Added based on description
 ├── scripts/
 │   └── deployment/
 │       └── deploy.js
@@ -114,53 +115,52 @@ SatoshiFi/
 ├── .gitignore
 ├── hardhat.config.js
 └── README.md
-```
+(Note: Added potential lending directory/contract based on description)
 
-## Powpeg Interfaces
-### IBridge
-```solidity
+Powpeg Interfaces
+IBridge
+Solidity
+
 interface IBridge {
-    // Getting Peg-In transaction information
+    // Retrieves Peg-In transaction information
     function getPegInInfo(bytes32 btcTxHash) external view returns (
         bool processed,
         address receiver,
         uint256 amount
     );
-    
-    // Request for BTC unlocking (Peg-Out)
+
+    // Initiates a BTC unlock request (Peg-Out)
     function createPegOut(
         bytes20 btcDestinationAddress,
         uint256 amount
     ) external returns (bytes32 pegoutTxHash);
 }
-```
+IFederation
+Solidity
 
-### IFederation
-```solidity
 interface IFederation {
-    // Getting the current federation BTC address
+    // Retrieves the current federation BTC address
     function getFederationAddress() external view returns (bytes20);
-    
-    // Checking federation status and Powpeg activity
+
+    // Checks the federation status and Powpeg activity
     function isActive() external view returns (bool);
 }
-```
+Dual Staking System
+The dual staking system allows users to stake both RBTC and SatFi tokens and earn rewards. Key features:
 
-## Dual Staking System
-The dual staking system allows users to stake both RBTC and SatFi tokens, receiving rewards for this. Main features:
-
-- Ability to stake RBTC, SatFi, or both assets simultaneously
-- Flexible locking periods from 7 to 365 days
-- Yield multipliers depending on the locking period
-- Dynamic reward rates with adjustment capability
-- Protection against reentrancy attacks
-
+Stake RBTC, SatFi, or both assets simultaneously.
+Choose flexible locking periods ranging from 7 to 365 days.
+Benefit from yield multipliers based on the chosen locking period.
+Earn dynamic reward rates that can be adjusted.
+Includes protection against reentrancy attacks.
 Usage example:
-```solidity
+
+Solidity
+
 // Staking 0.1 RBTC and 100 SatFi for 30 days
 dualStaking.stake{value: ethers.parseEther("0.1")}(
     ethers.parseUnits("100", 18),
-    30 days
+    30 days // Assuming 'days' is defined or replaced with seconds
 );
 
 // Claiming accumulated rewards
@@ -168,18 +168,17 @@ dualStaking.claimReward();
 
 // Unstaking after the locking period expires
 dualStaking.unstake();
-```
+SatFi Token
+The SatFi token is an ERC-20 compliant token with the following additional features:
 
-## SatFi Token
-The SatFi token implements the ERC-20 standard with additional functionality:
+Meta-transaction support: Enables gas-less transactions for users.
+Dynamic Fees: A dynamic fee mechanism with configurable parameters.
+Burnable: Tokens can be burned (destroyed).
+Mintable: New tokens can be created (minted) by the contract owner.
+Meta-transaction usage example:
 
-- Support for meta-transactions for fee-less operations
-- Dynamic fee mechanism with configuration options
-- Token burning system (burnability)
-- Ability to create new tokens by the contract owner
+TypeScript
 
-Example of using meta-transactions:
-```typescript
 // Signing a meta-transaction
 const domain = {
     name: "SatoshiFi Token",
@@ -203,12 +202,12 @@ const metaTx = {
     to: recipient.address,
     value: ethers.parseUnits("10", 18),
     nonce: await satFiToken.getNonce(sender.address),
-    data: "0x"
+    data: "0x" // Example data payload
 };
 
 const signature = await sender._signTypedData(domain, types, metaTx);
 
-// Executing a meta-transaction
+// Executing a meta-transaction via a relayer or the contract itself
 await satFiToken.executeMetaTransaction(
     metaTx.from,
     metaTx.to,
@@ -216,68 +215,64 @@ await satFiToken.executeMetaTransaction(
     metaTx.data,
     signature
 );
-```
+Frontend
+A web interface is planned for system interaction, utilizing the following technologies:
 
-## Frontend
-A web interface will be developed for interacting with the system using the following technologies:
+React.js or Vue.js for the user interface.
+ethers.js for blockchain interaction.
+Web3Modal for wallet connection.
+Key interface components will include:
 
-- React.js or Vue.js for the frontend
-- ethers.js for blockchain interaction
-- Web3Modal for wallet connection
+Wallet connection (e.g., MetaMask via Web3Modal).
+Management of BTC address binding.
+Staking interface.
+Transaction monitoring.
+Mining pool management interface.
+Lending service interface.
+Testing Recommendations
+Utilize the Rootstock testnet to verify interactions with the live Powpeg system.
+Develop mock contracts or emulators for Powpeg components to facilitate local testing.
+Implement comprehensive unit tests covering all critical functions.
+Create integration tests to ensure proper interaction between different system modules.
+Perform thorough security testing and potentially a formal audit, especially for functions managing user funds.
+Running the Local Development Environment
+Bash
 
-Main interface components:
-- Wallet connection (MetaMask)
-- BTC address binding management
-- Staking interface
-- Transaction monitoring
-- Mining pool management
-
-## Testing Recommendations
-1. Use Rootstock testnet to verify interaction with Powpeg
-2. Create Powpeg component emulators for local testing
-3. Write unit tests for all key functions
-4. Prepare integration tests to verify module interaction
-5. Conduct security testing for functions related to fund management
-
-## Running the Local Development Environment
-```bash
-# Start local Hardhat network
+# Start a local Hardhat network instance
 npx hardhat node
 
-# Deploy contracts to local network
+# Deploy contracts to the local network
 npx hardhat run scripts/deployment/deploy.js --network localhost
 
-# Run tests with code coverage
+# Run tests with code coverage report
 npx hardhat coverage
-```
+Roadmap
+Q1 2025: Develop and test core components
 
-## Roadmap
-1. **Q1 2025**: Development and testing of basic components
-   - Implementation of the protocol core
-   - Development of the SatFi token
-   - Creation of the dual staking system
+Implement protocol core
+Develop SatFi token
+Create dual staking system
+Q2 2025: Expand functionality
 
-2. **Q2 2025**: Functionality expansion
-   - Implementation of mining pool management
-   - Development of the reward distribution system
-   - Integration with Rootstock testnet
+Implement mining pool management
+Develop reward distribution system
+Implement trustless lending services
+Integrate with Rootstock testnet
+Q3 2025: Develop and test frontend
 
-3. **Q3 2025**: Frontend development and testing
-   - Creation of web interface
-   - Security audit
-   - Beta version launch in testnet
+Create web interface
+Conduct security audit
+Launch beta version on testnet
+Q4 2025: Mainnet launch
 
-4. **Q4 2025**: Mainnet launch
-   - Contract deployment to Rootstock mainnet
-   - Marketing campaign launch
-   - Start of partnership programs with mining pools
-
-## License
+Deploy contracts to Rootstock mainnet
+Launch marketing campaign
+Initiate partnership programs with mining pools
+License
 MIT
 
-## Authors
-Original code was developed by:
-- @HelixJuke
-- @Chopper
-
-English translation and project organization by Sergey Belets ([@SergeyBelets](https://github.com/SergeyBelets))
+Authors
+Core smart contract development by:
+@HelixJuke
+@Chopper
+Project management, requirements, and analytics by Sergey Belets (@SergeyBelets)
