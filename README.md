@@ -1,278 +1,502 @@
-# SatoshiFi
-A smart contract system for Bitcoin integration, providing dual staking functionality, mining pool management, trustless lending services, and hashrate tokenization.
+# SatoshiFi - Bitcoin Mining Pool Management Platform
 
-## Project Description
-SatoshiFi is a protocol designed to extend the capabilities of Rootstock (RSK) by providing additional functionality for interacting with Bitcoin transactions. The system leverages the existing Powpeg infrastructure to ensure reliable integration between the Bitcoin and RSK networks.
+## SatoshiFi Project
 
-Key system components include:
+**SatoshiFi** is a decentralized platform built on Ethereum blockchain for Bitcoin mining pool management with integrated DeFi services. The platform provides bridge interaction between Bitcoin and Ethereum, offering users staking opportunities, worker management, and reward distribution.
 
--   **Protocol Core (SatoshiFiCore):** Provides the core logic for interacting with Powpeg, managing user identification, and processing transactions.
--   **SatFi Token (SatFiToken):** An ERC-20 compatible token featuring extended functionality.
--   **Dual Staking System:** A mechanism enabling users to stake both RBTC and SatFi tokens.
--   **Mining Pool Management:** Functionality for creating and managing mining pools.
--   **Reward Distribution System:** Handles the calculation and distribution of rewards.
--   **Trustless Lending Services:** A mechanism allowing users to borrow stablecoins using BTC as collateral, or borrow BTC using stablecoins as collateral.
+### Key Features
 
-## Solution Architecture
-The system utilizes a modular architecture, with each component handling specific functionality:
+- ** Mining Pool Management**: Worker creation, task distribution, performance monitoring
+- ** Multi-asset Staking**: BTC, USDT, SatFi tokens with flexible lock conditions
+- ** Bitcoin Bridge**: Secure interaction between Bitcoin and Ethereum
+- ** Real-time Monitoring**: Track mining statistics and rewards in real-time
+- ** Trustless Architecture**: Decentralized management without third parties
 
--   **Core Protocol Contract:** Processes Peg-In and Peg-Out transactions leveraging the Powpeg interfaces (IBridge and IFederation).
--   **SatFi Token Contract:** Implements an ERC-20 compatible token supporting meta-transactions and configurable fees.
--   **Dual Staking Contract:** Manages the staking of RBTC and SatFi tokens.
--   **Mining Pool Manager:** Enables the creation and management of mining pools.
--   **Reward Distribution System:** Responsible for calculating and distributing rewards.
--   **Trustless Lending Services:** Responsible for accepting collateral, disbursing funds to borrowers, and liquidating collateral in case of margin call failures.
+---
 
-## Installation and Setup
-### Requirements
--   Node.js v20.x or higher
--   npm v10.x or higher
--   Git
+## System Architecture
 
-### Installation
-1.  Clone the repository:
-    ```bash
-    git clone [https://github.com/SergeyBelets/SatFiPublic.git](https://github.com/SergeyBelets/SatFiPublic.git)
-    cd SatoshiFi
-    ```
+### Infrastructure Components
 
-2.  Install dependencies:
-    ```bash
-    npm install
-    ```
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Ethereum (Sepolia Testnet)                  │
+│  ┌─────────────────────────────────────────────────────────────┤
+│  │ SatoshiFi Smart Contracts                                   │
+│  │ ├── SatFiToken.sol (ERC-20)                                │
+│  │ ├── MultiAssetStaking.sol                                  │
+│  │ ├── MiningPoolManager.sol                                  │
+│  │ ├── RewardDistribution.sol                                 │
+│  │ └── MockTokens.sol (mockBTC, mockUSDT)                    │
+│  └─────────────────────────────────────────────────────────────┤
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Frontend Interface                          │
+│  https://unilayer.solutions/                                   │
+│  ├── Wallet Connection (Web3Modal)                            │
+│  ├── Staking Interface                                         │
+│  ├── Mining Pool Dashboard                                     │
+│  ├── Faucet for Test Tokens                                   │
+│  └── Statistics & Monitoring                                   │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                Bitcoin Testnet Infrastructure                   │
+│  ┌─────────────────────────────────────────────────────────────┤
+│  │ AWS ECS Cluster (eu-north-1)                               │
+│  │ ├── Coordinator Node (51.20.82.101)                       │
+│  │ ├── Worker Pool A (nodes 0-4)                             │
+│  │ ├── Worker Pool B (nodes 5-9)                             │
+│  │ └── API Proxy (16.170.245.61)                             │
+│  └─────────────────────────────────────────────────────────────┤
+│  │ Network Status: regtest, 112 blocks, 500+ BTC             │
+│  │ Real-time monitoring via btcscanner.html                   │
+│  │ Wallet management via btcwallet.html                       │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-3.  Create a `.env` file based on `.env.example`:
-    ```bash
-    cp .env.example .env
-    ```
+---
 
-4.  Configure the required environment variables in the `.env` file.
+## Technical Specifications
 
-### Testing
-To run tests:
+### Smart Contract Stack
+
+#### SatFiToken (ERC-20)
+```solidity
+// Platform native token
+contract SatFiToken {
+    - Standard ERC-20 functionality
+    - Mintable/Burnable capabilities
+    - Gas-optimized operations
+    - Staking contract integration
+}
+```
+
+#### MultiAssetStaking
+```solidity
+// Multi-asset staking system
+contract MultiAssetStaking {
+    - Stake BTC, USDT, SatFi tokens
+    - Flexible lock periods (7-365 days)
+    - Dynamic reward rates
+    - APY multipliers
+    - Emergency withdrawal functions
+}
+```
+
+#### MiningPoolManager
+```solidity
+// Mining pool management
+contract MiningPoolManager {
+    - Worker registration
+    - Mining task creation
+    - Performance tracking
+    - Automatic reward distribution
+}
+```
+
+### Bitcoin Testnet Infrastructure
+
+**11 Bitcoin Core v29.0.0 nodes:**
+- 1 Coordinator node (network coordination)
+- 10 Worker nodes (mining pools A and B)
+- Regtest mode for fast testing
+- RPC API for Ethereum integration
+
+**Current network statistics:**
+- Block height: 112+ blocks
+- Total BTC: 550+ BTC
+- Network difficulty: minimal (regtest)
+- Block time: 10 seconds (manual generation)
+
+---
+
+## Quick Start
+
+### Prerequisites
+
 ```bash
+Node.js v20.x+
+npm v10.x+
+MetaMask or compatible Web3 wallet
+Git
+```
+
+### Installation and Setup
+
+```bash
+# 1. Clone repository
+git clone https://github.com/SergeyBelets/SatFiPublic.git
+cd SatoshiFi
+
+# 2. Install dependencies
+npm install
+
+# 3. Environment configuration
+cp .env.example .env
+# Configure environment variables
+
+# 4. Compile contracts
+npx hardhat compile
+
+# 5. Run tests
 npx hardhat test
-Deployment
-To deploy to the Rootstock testnet:
 
-Bash
+# 6. Deploy to Sepolia testnet
+npx hardhat run scripts/deploy.js --network sepolia
+```
 
-npx hardhat run scripts/deployment/deploy.js --network rskTestnet
-Powpeg Integration
-The SatoshiFi system utilizes the Powpeg API for Bitcoin integration rather than duplicating its functionality. The Peg-In and Peg-Out processes work as follows:
+### Frontend Setup
 
-Bitcoin Locking Process (Peg-In)
-ID Binding:
+```bash
+# Local development
+npm run dev
 
-The user registers their RSK address with the SatoshiFi contract.
-The system generates a unique identifier intended for inclusion in the OP_RETURN field of the Bitcoin transaction.
-Getting Instructions:
+# Production build
+npm run build
 
-The contract retrieves the current federation address via the Powpeg API.
-The user receives instructions to send BTC to the federation address, including the unique identifier in the OP_RETURN field.
-Tracking and Verification:
+# Start static server
+npm run serve
+```
 
-The system monitors transactions to the federation address.
-When a transaction arrives at the federation address containing the corresponding identifier in its OP_RETURN field, the system associates the pegged funds with the specific user's RSK address.
-Bitcoin Unlocking Process (Peg-Out)
-Initiating Unlock:
+---
 
-The user initiates a withdrawal request for their funds via the SatoshiFi interface.
-The user specifies the recipient's destination BTC address.
-Request Processing:
+## Platform Integration
 
-The contract verifies the user's permissions and available funds.
-It calls the standard Powpeg method (createPegOut) to initiate the Peg-Out process.
-The system records the association between this Peg-Out request and the user.
-Status Tracking:
+### Ethereum Connection
 
-The system monitors the execution of the Peg-Out request.
-It updates the status of the user's operation as the Peg-Out process progresses.
-Project Structure
-SatoshiFi/
-├── contracts/
-│   ├── core/
-│   │   └── SatoshiFiCore.sol
-│   ├── token/
-│   │   └── SatFiToken.sol
-│   ├── staking/
-│   │   └── DualStaking.sol
-│   ├── pools/
-│   │   └── MiningPoolManager.sol
-│   └── rewards/
-│       └── RewardDistribution.sol
-│   └── lending/               # Added based on description
-│       └── TrustlessLending.sol # Added based on description
-├── scripts/
-│   └── deployment/
-│       └── deploy.js
-├── test/
-│   ├── SatoshiFiCore.test.js
-│   ├── SatFiToken.test.js
-│   └── integration/
-├── .env
-├── .env.example
-├── .gitignore
-├── hardhat.config.js
-└── README.md
-(Note: Added potential lending directory/contract based on description)
+```javascript
+// Web3 integration
+import { ethers } from 'ethers';
+import { CONTRACT_ADDRESSES } from './config';
 
-Powpeg Interfaces
-IBridge
-Solidity
+// Connect to Sepolia testnet
+const provider = new ethers.JsonRpcProvider(process.env.SEPOLIA_RPC_URL);
+const signer = await provider.getSigner();
 
-interface IBridge {
-    // Retrieves Peg-In transaction information
-    function getPegInInfo(bytes32 btcTxHash) external view returns (
-        bool processed,
-        address receiver,
-        uint256 amount
+// Initialize contracts
+const satFiToken = new ethers.Contract(
+    CONTRACT_ADDRESSES.SATFI_TOKEN,
+    SatFiTokenABI,
+    signer
+);
+
+const staking = new ethers.Contract(
+    CONTRACT_ADDRESSES.STAKING,
+    StakingABI,
+    signer
+);
+```
+
+### Staking Operations
+
+```javascript
+// Stake mockBTC
+async function stakeBTC(amount, lockPeriod) {
+    // Approve tokens
+    await mockBTC.approve(stakingContract.address, amount);
+    
+    // Stake tokens
+    const tx = await stakingContract.stakeBTC(amount, lockPeriod);
+    await tx.wait();
+    
+    console.log('BTC staked successfully!');
+}
+
+// Claim rewards
+async function claimRewards() {
+    const tx = await stakingContract.claimRewards();
+    await tx.wait();
+    
+    console.log('Rewards claimed!');
+}
+```
+
+### Bitcoin Testnet Integration
+
+```javascript
+// Bitcoin RPC calls via API proxy
+async function getBitcoinBalance(address) {
+    const response = await fetch('https://api.unilayer.solutions/api/btc-proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            node: 'coordinator',
+            method: 'scantxoutset',
+            params: ['start', [`addr(${address})`]]
+        })
+    });
+    
+    const data = await response.json();
+    return data.result.total_amount;
+}
+```
+
+---
+
+## User Interface
+
+### Main Screens
+
+** Dashboard**
+- Portfolio overview
+- Active stakes
+- Available rewards
+- Mining pool performance
+
+** Staking Interface**
+- Multi-asset staking (BTC, USDT, SatFi)
+- Flexible lock periods
+- APY calculator
+- Real-time rewards tracking
+
+** Mining Pools**
+- Worker registration
+- Pool statistics
+- Hashrate monitoring
+- Reward distribution
+
+** Faucet**
+- Get test mockBTC tokens
+- Get test mockUSDT tokens
+- Daily limits and cooldowns
+
+### Interactive Components
+
+```jsx
+// React staking component
+function StakingInterface() {
+    const [selectedAsset, setSelectedAsset] = useState('BTC');
+    const [amount, setAmount] = useState('');
+    const [lockPeriod, setLockPeriod] = useState(30);
+    
+    return (
+        <div className="staking-interface">
+            <AssetSelector onChange={setSelectedAsset} />
+            <AmountInput value={amount} onChange={setAmount} />
+            <LockPeriodSlider value={lockPeriod} onChange={setLockPeriod} />
+            <StakeButton onClick={() => executeStake(selectedAsset, amount, lockPeriod)} />
+        </div>
     );
-
-    // Initiates a BTC unlock request (Peg-Out)
-    function createPegOut(
-        bytes20 btcDestinationAddress,
-        uint256 amount
-    ) external returns (bytes32 pegoutTxHash);
 }
-IFederation
-Solidity
+```
 
-interface IFederation {
-    // Retrieves the current federation BTC address
-    function getFederationAddress() external view returns (bytes20);
+---
 
-    // Checks the federation status and Powpeg activity
-    function isActive() external view returns (bool);
-}
-Dual Staking System
-The dual staking system allows users to stake both RBTC and SatFi tokens and earn rewards. Key features:
+## Testing
 
-Stake RBTC, SatFi, or both assets simultaneously.
-Choose flexible locking periods ranging from 7 to 365 days.
-Benefit from yield multipliers based on the chosen locking period.
-Earn dynamic reward rates that can be adjusted.
-Includes protection against reentrancy attacks.
-Usage example:
+### Unit Tests
 
-Solidity
+```bash
+# Run all tests
+npx hardhat test
 
-// Staking 0.1 RBTC and 100 SatFi for 30 days
-dualStaking.stake{value: ethers.parseEther("0.1")}(
-    ethers.parseUnits("100", 18),
-    30 days // Assuming 'days' is defined or replaced with seconds
-);
+# Test specific contract
+npx hardhat test test/SatFiToken.test.js
 
-// Claiming accumulated rewards
-dualStaking.claimReward();
-
-// Unstaking after the locking period expires
-dualStaking.unstake();
-SatFi Token
-The SatFi token is an ERC-20 compliant token with the following additional features:
-
-Meta-transaction support: Enables gas-less transactions for users.
-Dynamic Fees: A dynamic fee mechanism with configurable parameters.
-Burnable: Tokens can be burned (destroyed).
-Mintable: New tokens can be created (minted) by the contract owner.
-Meta-transaction usage example:
-
-TypeScript
-
-// Signing a meta-transaction
-const domain = {
-    name: "SatoshiFi Token",
-    version: "1",
-    chainId: network.chainId,
-    verifyingContract: satFiToken.address
-};
-
-const types = {
-    MetaTransaction: [
-        { name: "from", type: "address" },
-        { name: "to", type: "address" },
-        { name: "value", type: "uint256" },
-        { name: "nonce", type: "uint256" },
-        { name: "data", type: "bytes" }
-    ]
-};
-
-const metaTx = {
-    from: sender.address,
-    to: recipient.address,
-    value: ethers.parseUnits("10", 18),
-    nonce: await satFiToken.getNonce(sender.address),
-    data: "0x" // Example data payload
-};
-
-const signature = await sender._signTypedData(domain, types, metaTx);
-
-// Executing a meta-transaction via a relayer or the contract itself
-await satFiToken.executeMetaTransaction(
-    metaTx.from,
-    metaTx.to,
-    metaTx.value,
-    metaTx.data,
-    signature
-);
-Frontend
-A web interface is planned for system interaction, utilizing the following technologies:
-
-React.js or Vue.js for the user interface.
-ethers.js for blockchain interaction.
-Web3Modal for wallet connection.
-Key interface components will include:
-
-Wallet connection (e.g., MetaMask via Web3Modal).
-Management of BTC address binding.
-Staking interface.
-Transaction monitoring.
-Mining pool management interface.
-Lending service interface.
-Testing Recommendations
-Utilize the Rootstock testnet to verify interactions with the live Powpeg system.
-Develop mock contracts or emulators for Powpeg components to facilitate local testing.
-Implement comprehensive unit tests covering all critical functions.
-Create integration tests to ensure proper interaction between different system modules.
-Perform thorough security testing and potentially a formal audit, especially for functions managing user funds.
-Running the Local Development Environment
-Bash
-
-# Start a local Hardhat network instance
-npx hardhat node
-
-# Deploy contracts to the local network
-npx hardhat run scripts/deployment/deploy.js --network localhost
-
-# Run tests with code coverage report
+# Coverage report
 npx hardhat coverage
-Roadmap
-Q1 2025: Develop and test core components
+```
 
-Implement protocol core
-Develop SatFi token
-Create dual staking system
-Q2 2025: Expand functionality
+### Integration Tests
 
-Implement mining pool management
-Develop reward distribution system
-Implement trustless lending services
-Integrate with Rootstock testnet
-Q3 2025: Develop and test frontend
+```bash
+# Test Bitcoin integration
+npm run test:bitcoin
 
-Create web interface
-Conduct security audit
-Launch beta version on testnet
-Q4 2025: Mainnet launch
+# End-to-end testing
+npm run test:e2e
 
-Deploy contracts to Rootstock mainnet
-Launch marketing campaign
-Initiate partnership programs with mining pools
-License
-MIT
+# Performance testing
+npm run test:performance
+```
 
-Authors
-Core smart contract development by:
-@HelixJuke
-@Chopper
-Project management, requirements, and analytics by Sergey Belets (@SergeyBelets)
+### Testnet Addresses
+
+```yaml
+Sepolia Testnet:
+  SatFiToken: 0x[CONTRACT_ADDRESS]
+  MultiAssetStaking: 0x[CONTRACT_ADDRESS]
+  MockBTC: 0x[CONTRACT_ADDRESS]
+  MockUSDT: 0x[CONTRACT_ADDRESS]
+  MiningPoolManager: 0x[CONTRACT_ADDRESS]
+
+Bitcoin Testnet:
+  Coordinator Node: 51.20.82.101:8332
+  API Proxy: https://api.unilayer.solutions/api/btc-proxy
+  Frontend: https://unilayer.solutions/
+```
+
+---
+
+## Monitoring and Analytics
+
+### Real-time Metrics
+
+**Bitcoin Network:**
+- Block height and network status
+- Node connectivity (11/11 online)
+- Mempool transactions
+- Mining statistics
+
+**Ethereum Contracts:**
+- Total Value Locked (TVL)
+- Active stakes count
+- Reward distribution
+- Gas usage optimization
+
+**Platform Performance:**
+- API response times (150-500ms)
+- Transaction success rates
+- User activity metrics
+- Error monitoring
+
+### Dashboards
+
+- **btcscanner.html**: Bitcoin network monitoring
+- **btcwallet.html**: Bitcoin wallet management  
+- **btcmanager.html**: Admin panel for Bitcoin nodes
+- **Frontend dashboard**: Ethereum DeFi metrics
+
+---
+
+## Security
+
+### Smart Contract Security
+
+- **Reentrancy protection**: In all financial operations
+- **Access control**: Role-based permissions
+- **Input validation**: Comprehensive parameter checking  
+- **Emergency functions**: Pause/unpause mechanisms
+- **Audit ready**: Prepared for security audit
+
+### Infrastructure Security
+
+**Ethereum side:**
+- Testnet environment isolation
+- Multi-signature wallet integration (planned)
+- Gas optimization for cost reduction
+
+**Bitcoin side:**
+- VPC isolation for testnet nodes
+- RPC authentication
+- EFS encryption at rest
+- API proxy with HTTPS/TLS
+
+---
+
+## Roadmap
+
+### Q1 2025 - Foundation
+- ✅ Smart contract architecture
+- ✅ Bitcoin testnet infrastructure  
+- ✅ Basic staking functionality
+- ✅ Mock token faucets
+- ✅ Frontend MVP
+
+### Q2 2025 - Enhancement
+- 🔄 Mining pool integration
+- 🔄 Advanced reward mechanisms
+- 🔄 Cross-chain bridge optimization
+- 🔄 Mobile-responsive UI
+- 🔄 Security audit
+
+### Q3 2025 - Scaling
+- Mainnet deployment preparation
+- Advanced analytics dashboard
+- Partnership integrations
+- Community governance features
+- Performance optimization
+
+### Q4 2025 - Launch
+- Mainnet launch
+- Marketing campaign
+- Institutional partnerships
+- Advanced DeFi features
+- Global expansion
+
+---
+
+## Contributing
+
+### For Developers
+
+```bash
+# Fork repository
+git fork https://github.com/SergeyBelets/SatFiPublic.git
+
+# Create feature branch
+git checkout -b feature/new-feature
+
+# Commit changes
+git commit -m "Add new feature"
+
+# Push and create PR
+git push origin feature/new-feature
+```
+
+### Areas for Contribution
+
+- **Smart Contract Development**: Solidity contracts and tests
+- **Frontend Development**: React.js/Web3 integration
+- **Bitcoin Integration**: RPC API and infrastructure
+- **Documentation**: Technical docs and tutorials
+- **Testing**: Unit/Integration tests
+- **Security**: Audit and vulnerability research
+
+---
+
+## Support and Contacts
+
+### Project Team
+
+- **Project Lead & Analytics**: Sergey Belets (@SergeyBelets)
+- **Smart Contract Development**: @HelixJuke, @Chopper  
+- **Infrastructure & DevOps**: Core team
+- **Community Management**: Telegram/Discord
+
+### Contact
+
+- **GitHub**: [SatoshiFi Repository](https://github.com/SergeyBelets/SatFiPublic)
+- **Website**: [https://unilayer.solutions/](https://unilayer.solutions/)
+- **Documentation**: [GitHub Wiki](https://github.com/SergeyBelets/SatFiPublic/wiki)
+- **Issue Tracker**: [GitHub Issues](https://github.com/SergeyBelets/SatFiPublic/issues)
+
+### Community
+
+- **Telegram**: [SatoshiFi Community] (coming soon)
+- **Discord**: [SatoshiFi Discord] (coming soon)
+- **Twitter**: [@SatoshiFi] (coming soon)
+
+---
+
+## License
+
+```
+MIT License
+
+Copyright (c) 2025 SatoshiFi Team
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+```
+
+---
+
+## Conclusion
+
+SatoshiFi represents an innovative platform that combines the power of Bitcoin mining with the flexibility of Ethereum DeFi. Our architecture ensures secure and efficient interaction between two leading blockchain ecosystems, providing users with unique opportunities for earning and participating in decentralized finance.
