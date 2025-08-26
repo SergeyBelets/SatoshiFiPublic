@@ -76,15 +76,13 @@ def init_db():
         sent_successfully BOOLEAN,
         sent_at TIMESTAMP
     )''')
-    # Новые таблицы для платежной системы
+    # Платежные таблицы (упрощенные)
     c.execute('''CREATE TABLE IF NOT EXISTS money_collections (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT NOT NULL,
         description TEXT,
         amount INTEGER NOT NULL,
         teacher_phone TEXT,
-        teacher_card_number TEXT,
-        teacher_name TEXT,
         purpose_code TEXT,
         deadline DATE,
         is_active BOOLEAN DEFAULT true,
@@ -108,9 +106,6 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS teacher_payment_settings (
         teacher_id INTEGER PRIMARY KEY,
         phone_number TEXT,
-        card_number TEXT,
-        cardholder_name TEXT,
-        bank_name TEXT,
         receive_notifications BOOLEAN DEFAULT true,
         updated_at TIMESTAMP
     )''')
@@ -159,7 +154,8 @@ def get_payment_menu(role):
     if role == 'teacher':
         keyboard = [
             ['💰 Создать сбор', '📊 Статистика сборов'],
-            ['⚙️ Настройки платежей', '📋 Все сборы'],
+            ['⏳ Ожидают подтверждения', '❌ Отклоненные'],
+            ['⚙️ Настройка телефона', '📋 Все сборы'],
             ['🔙 Назад']
         ]
     elif role == 'parent':
@@ -185,7 +181,6 @@ def clear_user_context(context):
     context.user_data.pop('collection_description', None)
     context.user_data.pop('collection_amount', None)
     context.user_data.pop('temp_phone', None)
-    context.user_data.pop('temp_card', None)
 
 def generate_payment_comment_code(collection_id, parent_id):
     """Генерирует уникальный код для комментария к переводу"""
@@ -268,8 +263,8 @@ async def setup_teacher_payment_info(update: Update, context: ContextTypes.DEFAU
     
     context.user_data['setting_up_payment'] = 'phone'
     await update.message.reply_text(
-        "⚙️ Настройка реквизитов для сборов\n\n"
-        "Введите ваш номер телефона для СБП (в формате +7xxxxxxxxxx или 8xxxxxxxxxx):"
+        "⚙️ Настройка телефона для СБП\n\n"
+        "Введите ваш номер телефона (в формате +7xxxxxxxxxx или 8xxxxxxxxxx):"
     )
 
 async def create_money_collection(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -278,18 +273,18 @@ async def create_money_collection(update: Update, context: ContextTypes.DEFAULT_
         await update.message.reply_text("Только учитель может создавать сборы")
         return
     
-    # Проверяем, настроены ли реквизиты
+    # Проверяем, настроен ли телефон
     conn = sqlite3.connect('classroom.db')
     c = conn.cursor()
-    c.execute("SELECT phone_number, card_number FROM teacher_payment_settings WHERE teacher_id = ?", (user_id,))
+    c.execute("SELECT phone_number FROM teacher_payment_settings WHERE teacher_id = ?", (user_id,))
     payment_info = c.fetchone()
     conn.close()
     
     if not payment_info or not payment_info[0]:
-        keyboard = [['⚙️ Настроить реквизиты'], ['🔙 Назад']]
+        keyboard = [['⚙️ Настройка телефона'], ['🔙 Назад']]
         markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
         await update.message.reply_text(
-            "Сначала нужно настроить ваши реквизиты для получения денег",
+            "Сначала нужно настроить ваш номер телефона для СБП",
             reply_markup=markup
         )
         return
@@ -303,8 +298,7 @@ async def send_payment_request_to_parents(context, collection_id):
     c = conn.cursor()
     
     # Получаем данные сбора
-    c.execute("""SELECT title, description, amount, teacher_phone, teacher_card_number, 
-                        teacher_name, purpose_code, deadline 
+    c.execute("""SELECT title, description, amount, teacher_phone, purpose_code, deadline 
                  FROM money_collections WHERE id = ?""", (collection_id,))
     collection = c.fetchone()
     
@@ -316,7 +310,7 @@ async def send_payment_request_to_parents(context, collection_id):
         conn.close()
         return 0
     
-    title, desc, amount, teacher_phone, teacher_card, teacher_name, purpose_code, deadline = collection
+    title, desc, amount, teacher_phone, purpose_code, deadline = collection
     sent_count = 0
     
     for parent_id, parent_name in parents:
@@ -338,35 +332,21 @@ async def send_payment_request_to_parents(context, collection_id):
             message += f"💵 Сумма: {amount} рублей\n"
             message += f"📅 Срок: {deadline_str}\n\n"
             
-            # Инструкции по оплате
-            message += "💳 Способы оплаты:\n\n"
-            
-            if teacher_phone:
-                message += f"📱 СБП (по номеру телефона):\n"
-                message += f"Номер: {teacher_phone}\n"
-                message += f"Сумма: {amount} руб\n"
-                message += f"Комментарий: {comment_code}\n\n"
-            
-            if teacher_card:
-                message += f"💳 Перевод на карту:\n"
-                message += f"Карта: {teacher_card}\n"
-                if teacher_name:
-                    message += f"Получатель: {teacher_name}\n"
-                message += f"Комментарий: {comment_code}\n\n"
-            
+            # Инструкции по СБП
+            message += "💳 Оплата через СБП:\n\n"
+            message += f"📱 Номер: {teacher_phone}\n"
+            message += f"Сумма: {amount} руб\n"
+            message += f"Комментарий: {comment_code}\n\n"
             message += f"⚠️ ОБЯЗАТЕЛЬНО указывайте комментарий: {comment_code}\n"
             message += "Это нужно для автоматического учета вашего платежа\n\n"
             message += "После оплаты нажмите кнопку 'Я оплатил'"
             
             # Кнопки
             keyboard = [
+                [InlineKeyboardButton("📱 QR-код СБП", callback_data=f"qr_{collection_id}_{parent_id}")],
                 [InlineKeyboardButton("✅ Я оплатил", callback_data=f"paid_{collection_id}_{parent_id}")],
                 [InlineKeyboardButton("❌ Не могу оплатить", callback_data=f"cannot_pay_{collection_id}_{parent_id}")]
             ]
-            
-            if teacher_phone:
-                # Добавляем кнопку для QR-кода
-                keyboard.insert(0, [InlineKeyboardButton("📱 QR-код СБП", callback_data=f"qr_{collection_id}_{parent_id}")])
             
             markup = InlineKeyboardMarkup(keyboard)
             
@@ -380,23 +360,196 @@ async def send_payment_request_to_parents(context, collection_id):
     conn.close()
     return sent_count
 
-async def handle_payment_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    
-    data_parts = query.data.split('_')
-    if len(data_parts) < 3:
+async def show_pending_payments(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Показывает все платежи ожидающие подтверждения"""
+    user_id = update.effective_user.id
+    if get_user_role(user_id) != 'teacher':
         return
-        
-    action = data_parts[0]
-    collection_id = int(data_parts[1])
-    parent_id = int(data_parts[2])
     
     conn = sqlite3.connect('classroom.db')
     c = conn.cursor()
     
-    if action == "paid":
+    c.execute("""SELECT pp.id, pp.parent_name, pp.amount, pp.payment_comment, 
+                        mc.title, pp.paid_at
+                 FROM parent_payments pp
+                 JOIN money_collections mc ON pp.collection_id = mc.id
+                 WHERE pp.status = 'paid' AND mc.created_by = ?
+                 ORDER BY pp.paid_at DESC""", (user_id,))
+    
+    pending = c.fetchall()
+    conn.close()
+    
+    if not pending:
+        await update.message.reply_text("Нет платежей ожидающих подтверждения")
+        return
+    
+    message = "⏳ Платежи ожидающие подтверждения:\n\n"
+    keyboard = []
+    
+    # Кнопка подтвердить все
+    if len(pending) > 1:
+        keyboard.append([InlineKeyboardButton("✅ Подтвердить все", callback_data="confirm_all")])
+        keyboard.append([InlineKeyboardButton("❌ Отклонить все", callback_data="reject_all")])
+    
+    for payment in pending:
+        payment_id, parent_name, amount, comment, title, paid_at = payment
+        paid_time = datetime.fromisoformat(paid_at).strftime('%d.%m %H:%M')
+        
+        message += f"💰 {parent_name}\n"
+        message += f"📝 {title}\n"
+        message += f"💵 {amount} руб.\n"
+        message += f"🏷 {comment}\n"
+        message += f"⏰ {paid_time}\n"
+        
+        # Кнопки для каждого платежа
+        keyboard.append([
+            InlineKeyboardButton(f"✅ {parent_name}", callback_data=f"confirm_single_{payment_id}"),
+            InlineKeyboardButton(f"❌ {parent_name}", callback_data=f"reject_single_{payment_id}")
+        ])
+        
+        message += "\n"
+    
+    keyboard.append([InlineKeyboardButton("🔙 Назад", callback_data="back_to_payments")])
+    markup = InlineKeyboardMarkup(keyboard)
+    
+    await update.message.reply_text(message, reply_markup=markup)
+
+async def show_rejected_payments(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Показывает отклоненные платежи"""
+    user_id = update.effective_user.id
+    if get_user_role(user_id) != 'teacher':
+        return
+    
+    conn = sqlite3.connect('classroom.db')
+    c = conn.cursor()
+    
+    c.execute("""SELECT pp.parent_name, pp.amount, mc.title, pp.notes, pp.confirmed_at
+                 FROM parent_payments pp
+                 JOIN money_collections mc ON pp.collection_id = mc.id
+                 WHERE pp.status = 'rejected' AND mc.created_by = ?
+                 ORDER BY pp.confirmed_at DESC LIMIT 10""", (user_id,))
+    
+    rejected = c.fetchall()
+    conn.close()
+    
+    if not rejected:
+        await update.message.reply_text("Нет отклоненных платежей")
+        return
+    
+    message = "❌ Отклоненные платежи:\n\n"
+    
+    for payment in rejected:
+        parent_name, amount, title, notes, rejected_at = payment
+        rejected_time = datetime.fromisoformat(rejected_at).strftime('%d.%m %H:%M')
+        
+        message += f"👤 {parent_name}\n"
+        message += f"📝 {title}\n"
+        message += f"💵 {amount} руб.\n"
+        message += f"⏰ Отклонен: {rejected_time}\n"
+        if notes:
+            message += f"📄 Причина: {notes}\n"
+        message += "\n"
+    
+    await update.message.reply_text(message)
+
+async def handle_payment_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    data = query.data
+    user_id = query.from_user.id
+    
+    conn = sqlite3.connect('classroom.db')
+    c = conn.cursor()
+    
+    if data == "confirm_all":
+        # Подтверждаем все ожидающие платежи
+        c.execute("""UPDATE parent_payments 
+                    SET status = 'confirmed', confirmed_by = ?, confirmed_at = ?
+                    WHERE status = 'paid' AND collection_id IN 
+                    (SELECT id FROM money_collections WHERE created_by = ?)""",
+                 (user_id, datetime.now().isoformat(), user_id))
+        
+        affected = c.rowcount
+        await query.edit_message_text(f"✅ Подтверждены все платежи ({affected} шт.)")
+    
+    elif data == "reject_all":
+        # Отклоняем все ожидающие платежи
+        c.execute("""UPDATE parent_payments 
+                    SET status = 'rejected', confirmed_by = ?, confirmed_at = ?, notes = 'Массовое отклонение'
+                    WHERE status = 'paid' AND collection_id IN 
+                    (SELECT id FROM money_collections WHERE created_by = ?)""",
+                 (user_id, datetime.now().isoformat(), user_id))
+        
+        affected = c.rowcount
+        await query.edit_message_text(f"❌ Отклонены все платежи ({affected} шт.)")
+    
+    elif data.startswith("confirm_single_"):
+        payment_id = int(data.replace("confirm_single_", ""))
+        
+        # Получаем данные платежа
+        c.execute("""SELECT pp.parent_name, pp.parent_id, mc.title 
+                    FROM parent_payments pp
+                    JOIN money_collections mc ON pp.collection_id = mc.id
+                    WHERE pp.id = ?""", (payment_id,))
+        payment_info = c.fetchone()
+        
+        if payment_info:
+            parent_name, parent_id, title = payment_info
+            
+            # Подтверждаем платеж
+            c.execute("""UPDATE parent_payments 
+                        SET status = 'confirmed', confirmed_by = ?, confirmed_at = ?
+                        WHERE id = ?""",
+                     (user_id, datetime.now().isoformat(), payment_id))
+            
+            await query.edit_message_text(f"✅ Платеж от {parent_name} подтвержден")
+            
+            # Уведомляем родителя
+            try:
+                await context.bot.send_message(
+                    parent_id,
+                    f"✅ Ваш платеж подтвержден!\n\n📝 {title}\n💰 Сумма получена учителем"
+                )
+            except:
+                pass
+    
+    elif data.startswith("reject_single_"):
+        payment_id = int(data.replace("reject_single_", ""))
+        
+        # Получаем данные платежа
+        c.execute("""SELECT pp.parent_name, pp.parent_id, mc.title 
+                    FROM parent_payments pp
+                    JOIN money_collections mc ON pp.collection_id = mc.id
+                    WHERE pp.id = ?""", (payment_id,))
+        payment_info = c.fetchone()
+        
+        if payment_info:
+            parent_name, parent_id, title = payment_info
+            
+            # Отклоняем платеж
+            c.execute("""UPDATE parent_payments 
+                        SET status = 'rejected', confirmed_by = ?, confirmed_at = ?, notes = 'Отклонено учителем'
+                        WHERE id = ?""",
+                     (user_id, datetime.now().isoformat(), payment_id))
+            
+            await query.edit_message_text(f"❌ Платеж от {parent_name} отклонен")
+            
+            # Уведомляем родителя
+            try:
+                await context.bot.send_message(
+                    parent_id,
+                    f"❌ Ваш платеж отклонен\n\n📝 {title}\nОбратитесь к учителю для уточнения"
+                )
+            except:
+                pass
+    
+    elif data.startswith("paid_"):
         # Родитель сообщает, что оплатил
+        data_parts = data.split('_')
+        collection_id = int(data_parts[1])
+        parent_id = int(data_parts[2])
+        
         c.execute("""UPDATE parent_payments 
                     SET status = 'paid', paid_at = ? 
                     WHERE collection_id = ? AND parent_id = ?""",
@@ -425,8 +578,12 @@ async def handle_payment_callback(update: Update, context: ContextTypes.DEFAULT_
             # Уведомляем учителя
             await notify_teacher_about_payment(context, collection_id, parent_name, amount, comment, "paid")
     
-    elif action == "cannot":
+    elif data.startswith("cannot_pay_"):
         # Родитель не может оплатить
+        data_parts = data.split('_')
+        collection_id = int(data_parts[2])
+        parent_id = int(data_parts[3])
+        
         c.execute("""UPDATE parent_payments 
                     SET status = 'cannot_pay', notes = 'Родитель не может оплатить'
                     WHERE collection_id = ? AND parent_id = ?""",
@@ -444,8 +601,12 @@ async def handle_payment_callback(update: Update, context: ContextTypes.DEFAULT_
         
         await notify_teacher_about_payment(context, collection_id, parent_name, 0, "", "cannot_pay")
     
-    elif action == "qr":
+    elif data.startswith("qr_"):
         # Отправляем QR-код для СБП
+        data_parts = data.split('_')
+        collection_id = int(data_parts[1])
+        parent_id = int(data_parts[2])
+        
         c.execute("""SELECT mc.title, mc.amount, mc.teacher_phone, pp.payment_comment
                     FROM money_collections mc 
                     JOIN parent_payments pp ON mc.id = pp.collection_id
@@ -470,35 +631,9 @@ async def handle_payment_callback(update: Update, context: ContextTypes.DEFAULT_
                     text="Ошибка генерации QR-кода. Воспользуйтесь переводом по номеру телефона."
                 )
     
-    elif action == "confirm":
-        # Учитель подтверждает получение платежа
-        if len(data_parts) >= 4:
-            payment_parent_name = "_".join(data_parts[3:]).replace('_', ' ')
-            
-            c.execute("""UPDATE parent_payments 
-                        SET status = 'confirmed', confirmed_by = ?, confirmed_at = ?
-                        WHERE collection_id = ? AND parent_name = ? AND status = 'paid'""",
-                     (query.from_user.id, datetime.now().isoformat(), collection_id, payment_parent_name))
-            
-            await query.edit_message_text(
-                f"✅ Платеж от {payment_parent_name} подтвержден\n"
-                f"Статус обновлен в системе"
-            )
-            
-            # Уведомляем родителя о подтверждении
-            c.execute("SELECT parent_id FROM parent_payments WHERE collection_id = ? AND parent_name = ?",
-                     (collection_id, payment_parent_name))
-            parent_result = c.fetchone()
-            
-            if parent_result:
-                try:
-                    await context.bot.send_message(
-                        parent_result[0],
-                        f"✅ Ваш платеж подтвержден учителем!\n\n"
-                        f"Сумма получена и учтена в системе."
-                    )
-                except:
-                    pass
+    elif data == "back_to_payments":
+        markup = get_payment_menu('teacher')
+        await query.message.reply_text("💰 Управление сборами:", reply_markup=markup)
     
     conn.commit()
     conn.close()
@@ -521,13 +656,8 @@ async def notify_teacher_about_payment(context, collection_id, parent_name, amou
         message += f"👤 {parent_name}\n"
         message += f"💵 {amount} руб.\n"
         message += f"🏷 Код: {comment}\n\n"
-        message += f"Проверьте поступление и подтвердите получение"
-        
-        keyboard = [[InlineKeyboardButton(
-            "✅ Подтвердить получение", 
-            callback_data=f"confirm_payment_{collection_id}_{parent_name.replace(' ', '_')}"
-        )]]
-        markup = InlineKeyboardMarkup(keyboard)
+        message += f"Используйте меню 'Ожидают подтверждения' для управления платежами"
+        markup = None
     else:
         message = f"⚠️ {parent_name} не может оплатить сбор"
         markup = None
@@ -875,79 +1005,43 @@ async def handle_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
                    '📊 Статистика класса', '💰 Сборы денег', '💬 Сообщения от родителей', '✉️ Написать родителю',
                    '📤 Переслать сообщение', '📢 Объявления', '📚 Домашние задания', 
                    '✍️ Написать учителю', '↩️ Ответить учителю', '💰 Мои сборы', '💰 Создать сбор',
-                   '📊 Статистика сборов', '⚙️ Настройки платежей', '💳 К оплате', '✅ Оплаченные', 
-                   '📊 История платежей', '📋 Все сборы', '🔙 Назад']
+                   '📊 Статистика сборов', '⚙️ Настройка телефона', '💳 К оплате', '✅ Оплаченные', 
+                   '📊 История платежей', '📋 Все сборы', '⏳ Ожидают подтверждения', '❌ Отклоненные', '🔙 Назад']
     
     if (waiting_for or creating_collection or setting_up_payment) and text in menu_buttons:
         clear_user_context(context)
         await update.message.reply_text("❌ Операция отменена. Обрабатываю новую команду...")
     
-    # Обработка настройки платежных реквизитов
-    if setting_up_payment:
-        if setting_up_payment == 'phone':
-            # Очистка и валидация номера телефона
-            clean_phone = ''.join(filter(str.isdigit, text))
-            if len(clean_phone) == 11 and clean_phone.startswith('8'):
-                clean_phone = '+7' + clean_phone[1:]
-            elif len(clean_phone) == 11 and clean_phone.startswith('7'):
-                clean_phone = '+' + clean_phone
-            elif len(clean_phone) == 10:
-                clean_phone = '+7' + clean_phone
-            else:
-                await update.message.reply_text("Неверный формат номера. Попробуйте еще раз:")
-                return
-            
-            context.user_data['temp_phone'] = clean_phone
-            context.user_data['setting_up_payment'] = 'card'
-            await update.message.reply_text(f"Номер сохранен: {clean_phone}\n\nТеперь введите номер карты (16 цифр) или пропустите, написав 'пропустить':")
-            
-        elif setting_up_payment == 'card':
-            if text.lower() == 'пропустить':
-                card_number = None
-                context.user_data['temp_card'] = None
-            else:
-                # Очистка номера карты
-                clean_card = ''.join(filter(str.isdigit, text))
-                if len(clean_card) != 16:
-                    await update.message.reply_text("Номер карты должен содержать 16 цифр. Попробуйте еще раз или напишите 'пропустить':")
-                    return
-                # Маскируем карту для безопасности
-                card_number = clean_card[:4] + ' **** **** ' + clean_card[-4:]
-                context.user_data['temp_card'] = card_number
-            
-            context.user_data['setting_up_payment'] = 'name'
-            await update.message.reply_text("Введите ФИО владельца карты или пропустите, написав 'пропустить':")
-            
-        elif setting_up_payment == 'name':
-            if text.lower() == 'пропустить':
-                cardholder_name = None
-            else:
-                cardholder_name = text
-            
-            # Сохраняем все данные
-            phone = context.user_data.get('temp_phone')
-            card = context.user_data.get('temp_card')
-            
-            conn = sqlite3.connect('classroom.db')
-            c = conn.cursor()
-            c.execute("""INSERT OR REPLACE INTO teacher_payment_settings 
-                        (teacher_id, phone_number, card_number, cardholder_name, updated_at)
-                        VALUES (?, ?, ?, ?, ?)""",
-                     (user_id, phone, card, cardholder_name, datetime.now().isoformat()))
-            conn.commit()
-            conn.close()
-            
-            # Подтверждение настройки
-            message = "✅ Реквизиты сохранены:\n\n"
-            message += f"📱 Телефон СБП: {phone}\n"
-            if card:
-                message += f"💳 Карта: {card}\n"
-            if cardholder_name:
-                message += f"👤 Владелец: {cardholder_name}\n"
-            
-            clear_user_context(context)
-            markup = get_payment_menu('teacher')
-            await update.message.reply_text(message, reply_markup=markup)
+    # Обработка настройки телефона
+    if setting_up_payment == 'phone':
+        # Очистка и валидация номера телефона
+        clean_phone = ''.join(filter(str.isdigit, text))
+        if len(clean_phone) == 11 and clean_phone.startswith('8'):
+            clean_phone = '+7' + clean_phone[1:]
+        elif len(clean_phone) == 11 and clean_phone.startswith('7'):
+            clean_phone = '+' + clean_phone
+        elif len(clean_phone) == 10:
+            clean_phone = '+7' + clean_phone
+        else:
+            await update.message.reply_text("Неверный формат номера. Попробуйте еще раз:")
+            return
+        
+        # Сохраняем телефон
+        conn = sqlite3.connect('classroom.db')
+        c = conn.cursor()
+        c.execute("""INSERT OR REPLACE INTO teacher_payment_settings 
+                    (teacher_id, phone_number, updated_at)
+                    VALUES (?, ?, ?)""",
+                 (user_id, clean_phone, datetime.now().isoformat()))
+        conn.commit()
+        conn.close()
+        
+        # Подтверждение настройки
+        message = f"✅ Номер телефона сохранен: {clean_phone}\n\nТеперь вы можете создавать сборы денег"
+        
+        clear_user_context(context)
+        markup = get_payment_menu('teacher')
+        await update.message.reply_text(message, reply_markup=markup)
         return
     
     # Обработка создания сбора
@@ -972,22 +1066,20 @@ async def handle_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 title = context.user_data.get('collection_title')
                 description = context.user_data.get('collection_description')
                 
-                # Получаем реквизиты учителя
+                # Получаем телефон учителя
                 conn = sqlite3.connect('classroom.db')
                 c = conn.cursor()
-                c.execute("SELECT phone_number, card_number, cardholder_name FROM teacher_payment_settings WHERE teacher_id = ?", (user_id,))
+                c.execute("SELECT phone_number FROM teacher_payment_settings WHERE teacher_id = ?", (user_id,))
                 teacher_info = c.fetchone()
                 
                 if teacher_info:
-                    phone, card, name = teacher_info
+                    phone = teacher_info[0]
                     purpose_code = f"SB{datetime.now().strftime('%m%d%H%M')}"
                     
                     c.execute("""INSERT INTO money_collections 
-                                (title, description, amount, teacher_phone, teacher_card_number, 
-                                 teacher_name, purpose_code, is_active, created_by, created_at)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)""",
-                             (title, description, amount, phone, card, name, purpose_code, 
-                              user_id, datetime.now().isoformat()))
+                                (title, description, amount, teacher_phone, purpose_code, is_active, created_by, created_at)
+                                VALUES (?, ?, ?, ?, ?, 1, ?, ?)""",
+                             (title, description, amount, phone, purpose_code, user_id, datetime.now().isoformat()))
                     
                     collection_id = c.lastrowid
                     conn.commit()
@@ -1001,7 +1093,7 @@ async def handle_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     await update.message.reply_text(f"✅ Сбор '{title}' создан и отправлен {sent_count} родителям\nСумма: {amount} руб. с человека", reply_markup=markup)
                 else:
                     conn.close()
-                    await update.message.reply_text("Ошибка: не найдены ваши реквизиты. Настройте их в меню.")
+                    await update.message.reply_text("Ошибка: не найден ваш телефон. Настройте его в меню.")
             except ValueError:
                 await update.message.reply_text("Введите корректную сумму (только цифры):")
         return
@@ -1268,9 +1360,15 @@ async def handle_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
         elif text == '📊 Статистика сборов':
             clear_user_context(context)
             await show_collection_status(update, context)
-        elif text == '⚙️ Настройки платежей':
+        elif text == '⚙️ Настройка телефона':
             clear_user_context(context)
             await setup_teacher_payment_info(update, context)
+        elif text == '⏳ Ожидают подтверждения':
+            clear_user_context(context)
+            await show_pending_payments(update, context)
+        elif text == '❌ Отклоненные':
+            clear_user_context(context)
+            await show_rejected_payments(update, context)
         elif text == '📋 Все сборы':
             clear_user_context(context)
             # Показываем все сборы с подробностями
