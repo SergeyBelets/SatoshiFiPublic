@@ -1,0 +1,73 @@
+Команды для быстрого подключения и загрузки контекста:
+
+## Подключение к EC2 instance
+```bash
+# В CloudShell:
+aws ssm start-session --target i-0acbb13f756f7fc36
+
+# После подключения стать root:
+sudo su -
+
+# Перейти в директорию бота:
+cd /opt/classroom-bot
+```
+
+## Управление ботом
+```bash
+# Статус бота:
+systemctl status classroom-bot
+
+# Перезапуск бота:
+systemctl restart classroom-bot
+
+# Логи в реальном времени:
+journalctl -u classroom-bot -f
+
+# Остановить просмотр логов:
+Ctrl+C
+```
+
+## Редактирование и работа с кодом
+```bash
+# Активировать виртуальное окружение:
+source venv/bin/activate
+
+# Редактировать основной файл:
+nano bot.py
+
+# Посмотреть структуру функций:
+grep -n "^async def\|^def " bot.py
+
+# Проверить базу данных:
+sqlite3 classroom.db "SELECT telegram_id, username, role FROM users;"
+
+# Резервная копия перед изменениями:
+cp bot.py bot_backup_$(date +%Y%m%d_%H%M).py
+```
+
+## Данные бота
+```bash
+# Токен и ID разработчика:
+BOT_TOKEN=8071154944:AAGn5xwhNYQdKwHAsG_FPcnQQSXt9jcmiBg
+DEVELOPER_ID=95143189
+
+# Instance ID:
+i-0acbb13f756f7fc36
+
+# Username бота в Telegram:
+@classroom_5a_bot (нужно уточнить у @BotFather)
+```
+
+## Быстрые команды для отладки
+```bash
+# Найти конкретную строку с ошибкой:
+grep -n "текст_ошибки" bot.py
+
+# Посмотреть строки вокруг номера N:
+sed -n 'N-5,N+5p' bot.py
+
+# Заменить текст во всем файле:
+sed -i 's/старый_текст/новый_текст/g' bot.py
+```
+
+Сохраните эти команды - они дадут быстрый доступ ко всем основным операциям с ботом.
