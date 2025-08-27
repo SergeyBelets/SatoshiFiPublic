@@ -196,7 +196,7 @@ Professional custodians stake collateral and compete on transparent rates. 5-of-
 
 ## Contributing
 
-We welcome contributions from the community! Please see our [Contributing Guide](CONTRIBUTING.md) for details on:
+We welcome contributions from the community! Please see our [Contributing Guide](coming soon) for details on:
 
 - Code contribution process
 - Development environment setup  
@@ -205,7 +205,7 @@ We welcome contributions from the community! Please see our [Contributing Guide]
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](coming soon) file for details.
 
 ## Contact
 
@@ -223,3 +223,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **SatoshiFi**: Transforming mining pool management through decentralization, transparency, and DeFi integration.
+
